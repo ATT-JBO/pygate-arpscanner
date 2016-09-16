@@ -12,7 +12,7 @@ from time import sleep
 import json
 from threading import Lock
 
-from core import config, cloud , device, modules
+from pygate_core import config, cloud , device, modules
 
 class Tracked:
     def __init__(self, name):
