@@ -68,7 +68,7 @@ def syncAssets(new, current):
         for item in new:
             name = str(item.replace(':', ''))
             item = str(item)
-            if not name in current:
+            if not item in current:
                 _device.addAsset(name, item, "presence of device", "sensor", "boolean")
             if not item in _tracked_devices:
                 _tracked_devices[item] = Tracked(name)
@@ -99,9 +99,9 @@ def findDevices():
     foundDevices = {}
     # Execute arp command to find all currently known devices
     if os.name == 'nt':
-        proc = subprocess.Popen('arp -a', shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(config.getConfig("arpscanner", "arp command", 'arp -a'), shell=True, stdout=subprocess.PIPE)
     else:
-        proc = subprocess.Popen('sudo arp-scan -l -q', shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(config.getConfig("arpscanner", "arp command", 'sudo arp-scan -l -q'), shell=True, stdout=subprocess.PIPE)
     # Build array of dictionary entries for all devices found
     if os.name == 'nt':
         for line in proc.stdout:
@@ -138,7 +138,7 @@ def updateAssetStates(current):
                     knownName.changeCount = 0
             elif _device.getValue(knownName.name) == True:
                 knownName.changeCount += 1
-                if knownName.changeCount > 2:  # compensate: the device has to disapear for 2 cycles before we really report it gone.
+                if knownName.changeCount > int(config.getConfig("arpscanner", "min departure scan count", '2')):  # compensate: the device has to disapear for 2 cycles before we really report it gone.
                     logger.info('left: ' + knownName.name)
                     _device.send('false', knownName.name)
                     knownName.changeCount = 0
