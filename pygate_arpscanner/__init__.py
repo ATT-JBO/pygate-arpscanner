@@ -56,8 +56,13 @@ class Pinger(Thread):
                     if dev.ip and ping.do_one(dev.ip, 500):            #timeout as fast as possible. if the dev has no ip, it is not on the network (or not yet seen, so don't ping).
                         foundDevices[dev.mac] = dev.ip
                 updateAssetStates(foundDevices)
-                time_dif = datetime.timedelta(seconds=_refresh_frequency) - (datetime.datetime.now() - start)
-                _pinger_wake_up_event.wait(time_dif.total_seconds())        #wake up if the service stops.
+                refresh_every = datetime.timedelta(seconds=_refresh_frequency)
+                time_dif = (datetime.datetime.now() - start)
+                if time_dif < refresh_every:
+                    time_dif = refresh_every - time_dif
+                    _pinger_wake_up_event.wait(time_dif.total_seconds())        #wake up if the service stops.
+                else:
+                    logger.error("pinger time overrun: pinging took longer than refresh rate")
             except:
                 logger.exception("ping thread failed")
 
@@ -238,8 +243,13 @@ def run():
     while _isRunning:
         try:
             updateAssetStates(foundDevices)
-            time_dif = datetime.timedelta(seconds=_refresh_frequency) - (datetime.datetime.now() - start)
-            _main_wake_up_event.wait(time_dif.total_seconds())          #wake up if we need to stop
+            refresh_every = datetime.timedelta(seconds=_refresh_frequency)
+            time_dif = (datetime.datetime.now() - start)
+            if time_dif < refresh_every:
+                time_dif = refresh_every - time_dif
+                _main_wake_up_event.wait(time_dif.total_seconds())  # wake up if the service stops.
+            else:
+                logger.error("arp-scan time overrun: scan took longer than refresh rate")
             if _isRunning:
                 start = datetime.datetime.now()
                 foundDevices = findDevices()
